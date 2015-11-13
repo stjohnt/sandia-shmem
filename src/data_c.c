@@ -294,7 +294,7 @@ shmem_longlong_p(long long *addr, long long value, int pe)
 
 
 float
-shmem_float_g(float *addr, int pe)
+shmem_float_g(const float *addr, int pe)
 {
     float tmp = 0.0;
 
@@ -307,7 +307,7 @@ shmem_float_g(float *addr, int pe)
 
 
 double
-shmem_double_g(double *addr, int pe)
+shmem_double_g(const double *addr, int pe)
 {
     double tmp = 0.0;
 
@@ -319,7 +319,7 @@ shmem_double_g(double *addr, int pe)
 }
 
 long double
-shmem_longdouble_g(long double *addr, int pe)
+shmem_longdouble_g(const long double *addr, int pe)
 {
     long double tmp = 0.0;
 
@@ -332,7 +332,7 @@ shmem_longdouble_g(long double *addr, int pe)
 
 
 char
-shmem_char_g(char *addr, int pe)
+shmem_char_g(const char *addr, int pe)
 {
     char tmp = 0;
 
@@ -345,7 +345,7 @@ shmem_char_g(char *addr, int pe)
 
 
 short
-shmem_short_g(short *addr, int pe)
+shmem_short_g(const short *addr, int pe)
 {
     short tmp = 0;
 
@@ -358,7 +358,7 @@ shmem_short_g(short *addr, int pe)
 
 
 int
-shmem_int_g(int *addr, int pe)
+shmem_int_g(const int *addr, int pe)
 {
     int tmp = 0;
 
@@ -371,7 +371,7 @@ shmem_int_g(int *addr, int pe)
 
 
 long
-shmem_long_g(long *addr, int pe)
+shmem_long_g(const long *addr, int pe)
 {
     long tmp = 0;
 
@@ -384,7 +384,7 @@ shmem_long_g(long *addr, int pe)
 
 
 long long
-shmem_longlong_g(long long *addr, int pe)
+shmem_longlong_g(const long long *addr, int pe)
 {
     long long tmp = 0;
 

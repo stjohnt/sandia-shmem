@@ -34,7 +34,7 @@
 
 
 void
-shmem_clear_lock(long *lockp)
+shmem_clear_lock(volatile long *lockp)
 {
     SHMEM_ERR_CHECK_INITIALIZED();
 
@@ -43,7 +43,7 @@ shmem_clear_lock(long *lockp)
 
 
 void
-shmem_set_lock(long *lockp)
+shmem_set_lock(volatile long *lockp)
 {
     SHMEM_ERR_CHECK_INITIALIZED();
 
@@ -52,7 +52,7 @@ shmem_set_lock(long *lockp)
 
 
 int
-shmem_test_lock(long *lockp)
+shmem_test_lock(volatile long *lockp)
 {
     SHMEM_ERR_CHECK_INITIALIZED();
 
