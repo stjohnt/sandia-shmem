@@ -217,7 +217,7 @@ double shmem_double_swap(double *target, double value, int pe);
 int shmem_int_swap(int *target, int value, int pe);
 long shmem_long_swap(long *target, long value, int pe);
 long long shmem_longlong_swap(long long *target, long long value, int pe);
-long shmem_swap(long *target, long value, int pe);
+long shmem_swap(long *target, long value, int pe); /* FIXME C11 */
 
 /* 8.4: Atomic Memory fetch-and-operate Routines -- Cswap */
 int shmem_int_cswap(int *target, int cond, int value, int pe);
@@ -244,6 +244,20 @@ void shmem_longlong_add(long long *target, long long value, int pe);
 void shmem_int_inc(int *target, int pe);
 void shmem_long_inc(long *target, int pe);
 void shmem_longlong_inc(long long *target, int pe);
+
+/* 8.4: Atomic fetch */
+int shmem_int_fetch(const int *source, int pe);
+long shmem_long_fetch(const long *source, int pe);
+long long shmem_longlong_fetch(const long long *source, int pe);
+float shmem_int_fetch(const float *source, int pe);
+double shmem_long_fetch(const double *source, int pe);
+
+/* 8.4: Atomic set */
+int shmem_int_set(const int *dest, int pe);
+long shmem_long_set(const long *dest, int pe);
+long long shmem_longlong_set(const long long *dest, int pe);
+float shmem_int_set(const float *dest, int pe);
+double shmem_long_set(const double *dest, int pe);
 
 /* 8.5: Barrier Synchronization Routines */
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync);
