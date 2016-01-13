@@ -249,15 +249,15 @@ void shmem_longlong_inc(long long *target, int pe);
 int shmem_int_fetch(const int *source, int pe);
 long shmem_long_fetch(const long *source, int pe);
 long long shmem_longlong_fetch(const long long *source, int pe);
-float shmem_int_fetch(const float *source, int pe);
-double shmem_long_fetch(const double *source, int pe);
+float shmem_float_fetch(const float *source, int pe);
+double shmem_double_fetch(const double *source, int pe);
 
 /* 8.4: Atomic set */
 int shmem_int_set(const int *dest, int pe);
 long shmem_long_set(const long *dest, int pe);
 long long shmem_longlong_set(const long long *dest, int pe);
-float shmem_int_set(const float *dest, int pe);
-double shmem_long_set(const double *dest, int pe);
+float shmem_float_set(const float *dest, int pe);
+double shmem_double_set(const double *dest, int pe);
 
 /* 8.5: Barrier Synchronization Routines */
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync);
