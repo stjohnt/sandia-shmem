@@ -236,6 +236,11 @@ static inline int shmem_transport_quiet(void)
 		shmem_transport_ofi_drain_cq();
 	}
 
+	/* NB gets are synced via quiet */
+	ret = fi_cntr_wait(shmem_transport_ofi_get_cntrfd,
+			   shmem_transport_ofi_pending_get_counter, -1);
+	OFI_RET_CHECK(ret);
+
 	/* wait for put counter to meet outstanding count value    */
 	ret = fi_cntr_wait(shmem_transport_ofi_put_cntrfd,
 			shmem_transport_ofi_pending_put_counter,-1);
