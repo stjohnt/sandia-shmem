@@ -191,6 +191,7 @@ void shmem_transport_ofi_drain_cq(void)
 
 }
 
+
 static inline shmem_transport_ofi_bounce_buffer_t * create_bounce_buffer(const void *source, const size_t len)
 {
 	shmem_transport_ofi_bounce_buffer_t *buff;
@@ -227,23 +228,45 @@ static inline shmem_transport_ofi_long_frag_t * create_long_frag(long *completio
 	return long_frag;
 }
 
+
+static inline
+void
+shmem_transport_put_wait(long *completion)
+{
+        while(*completion >0) {
+	       shmem_transport_ofi_drain_cq();
+	}
+}
+
+
+static inline
+void
+shmem_transport_get_wait(void)
+{
+        int ret = 0;
+
+	/* wait for get counter to meet outstanding counter value */
+	ret = fi_cntr_wait(shmem_transport_ofi_get_cntrfd,
+			   shmem_transport_ofi_pending_get_counter,-1);
+	OFI_RET_CHECK(ret);
+}
+
+
 static inline int shmem_transport_quiet(void)
 {
-	int ret = 0;
+        int ret = 0;
 
 	/* wait until all outstanding queue operations have completed */
 	while(shmem_transport_ofi_pending_cq_count) {
-		shmem_transport_ofi_drain_cq();
+	        shmem_transport_ofi_drain_cq();
 	}
 
-	/* NB gets are synced via quiet */
-	ret = fi_cntr_wait(shmem_transport_ofi_get_cntrfd,
-			   shmem_transport_ofi_pending_get_counter, -1);
-	OFI_RET_CHECK(ret);
+	/* wait for get counter to meet outstanding value counter */
+	shmem_transport_get_wait();
 
-	/* wait for put counter to meet outstanding count value    */
+	/* wait for put counter to meet outstanding value counter */
 	ret = fi_cntr_wait(shmem_transport_ofi_put_cntrfd,
-			shmem_transport_ofi_pending_put_counter,-1);
+			   shmem_transport_ofi_pending_put_counter,-1);
 	OFI_RET_CHECK(ret);
 
 	return ret;
@@ -255,13 +278,14 @@ int
 shmem_transport_fence(void)
 {
 #if WANT_TOTAL_DATA_ORDERING == 0
-	/*unordered network model*/
-  return shmem_transport_quiet();
+        /* unordered network model */
+        return shmem_transport_quiet();
 #else
-  return 0;
+	return 0;
 #endif
 
 }
+
 
 /*RM requires polling until space is available*/
 static inline int try_again(const int ret, uint64_t *polled) {
@@ -362,14 +386,6 @@ shmem_transport_put_nb(void *target, const void *source, size_t len,
 	}
 }
 
-static inline
-void
-shmem_transport_put_wait(long *completion)
-{
-	while (*completion > 0) {
-		shmem_transport_ofi_drain_cq();
-	}
-}
 
 static inline
 void
@@ -391,19 +407,6 @@ shmem_transport_get(void *target, const void *source, size_t len, int pe)
 	} while(try_again(ret,&polled));
 
 	shmem_transport_ofi_pending_get_counter++;
-}
-
-
-static inline
-void
-shmem_transport_get_wait(void)
-{
-	int ret = 0;
-
-	/* wait for get counter to meet outstanding count value    */
-	ret = fi_cntr_wait(shmem_transport_ofi_get_cntrfd,
-			shmem_transport_ofi_pending_get_counter,-1);
-	OFI_RET_CHECK(ret);
 }
 
 

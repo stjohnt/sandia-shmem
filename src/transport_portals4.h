@@ -226,6 +226,81 @@ int shmem_transport_startup(void);
 int shmem_transport_fini(void);
 
 static inline
+void
+shmem_transport_portals4_drain_eq(void)
+{
+    int ret;
+    ptl_event_t ev;
+
+    /* NOTE-MT: Assume that ptl4_event slots mutex is already held.  Release the
+     * mutex before blocking on the EQ, then reacquire before proceeding. */
+    SHMEM_MUTEX_UNLOCK(shmem_internal_mutex_ptl4_event_slots);
+    ret = PtlEQWait(shmem_transport_portals4_eq_h, &ev);
+    if (PTL_OK != ret) { RAISE_ERROR(ret); }
+    if (ev.ni_fail_type != PTL_OK) { RAISE_ERROR(ev.ni_fail_type); }
+    SHMEM_MUTEX_LOCK(shmem_internal_mutex_ptl4_event_slots);
+
+    /* The only event type we should see on a success is a send event */
+    assert(ev.type == PTL_EVENT_SEND);
+
+    shmem_transport_portals4_event_slots++;
+
+    shmem_transport_portals4_frag_t *frag =
+         (shmem_transport_portals4_frag_t*) ev.user_ptr;
+
+    /* NOTE-MT: A different thread may have created this frag, so we need a
+     * memory barrier here before accessing any of the SHMEM-related fields in
+     * the frag.  Right now that comes from the mutex. */
+    SHMEM_MUTEX_LOCK(shmem_internal_mutex_ptl4_frag);
+    if (SHMEM_TRANSPORT_PORTALS4_TYPE_BOUNCE == frag->type) {
+         /* it's a short send completing */
+         SHMEM_MUTEX_UNLOCK(shmem_internal_mutex_ptl4_frag);
+	 shmem_free_list_free(shmem_transport_portals4_bounce_buffers,
+			      frag);
+    } else {
+         /* it's one of the long messages we're waiting for */
+         shmem_transport_portals4_long_frag_t *long_frag =
+	      (shmem_transport_portals4_long_frag_t*) frag;
+
+	 (*(long_frag->completion))--;
+	 if (0 >= --long_frag->reference) {
+  	      long_frag->reference = 0;
+	      SHMEM_MUTEX_UNLOCK(shmem_internal_mutex_ptl4_frag);
+	      shmem_free_list_free(shmem_transport_portals4_long_frags,
+				frag);
+	 } else {
+	      SHMEM_MUTEX_UNLOCK(shmem_internal_mutex_ptl4_frag);
+	 }
+    }
+}
+
+
+static inline
+void
+shmem_transport_put_wait(long *completion)
+{
+    while (*completion > 0) {
+        shmem_transport_portals4_drain_eq();
+  }
+}
+
+
+static inline
+void
+shmem_transport_get_wait(void)
+{
+    int ret;
+    ptl_ct_event_t ct;
+
+    ret = PtlCTWait(shmem_transport_portals4_get_ct_h,
+		    shmem_transport_portals4_pending_get_counter,
+		    &ct);
+    if (PTL_OK != ret) {RAISE_ERROR(ret); }
+    if (ct.failure != 0) {RAISE_ERROR(ct.failure); }
+}
+
+
+static inline
 int
 shmem_transport_quiet(void)
 {
@@ -236,10 +311,7 @@ shmem_transport_quiet(void)
     PtlAtomicSync();
 
     /* wait for completion of all pending NB get events */
-    ret = PtlCTWait(shmem_transport_portals4_get_ct_h,
-		    shmem_transport_portals4_pending_get_counter, &ct);
-    if (PTL_OK != ret) {return ret; }
-    if (ct.failure != 0) {return -1; }
+    shmem_transport_get_wait();
 
     /* wait for remote completion (acks) of all pending put events */
     ret = PtlCTWait(shmem_transport_portals4_put_ct_h, 
@@ -306,56 +378,6 @@ shmem_transport_portals4_fence_complete(void)
 #endif
 
     return ret;
-}
-
-
-static inline
-void
-shmem_transport_portals4_drain_eq(void)
-{
-    int ret;
-    ptl_event_t ev;
-
-    /* NOTE-MT: Assume that ptl4_event_slots mutex is already held.  Release the
-     * mutex before blocking on the EQ, then reqacuire before proceeding. */
-    SHMEM_MUTEX_UNLOCK(shmem_internal_mutex_ptl4_event_slots);
-    ret = PtlEQWait(shmem_transport_portals4_eq_h, &ev);
-    if (PTL_OK != ret) { RAISE_ERROR(ret); }
-    if (ev.ni_fail_type != PTL_OK) { RAISE_ERROR(ev.ni_fail_type); }
-    SHMEM_MUTEX_LOCK(shmem_internal_mutex_ptl4_event_slots);
-
-    /* The only event type we should see on a success is a send event */
-    assert(ev.type == PTL_EVENT_SEND);
-
-    shmem_transport_portals4_event_slots++;
-
-    shmem_transport_portals4_frag_t *frag = 
-         (shmem_transport_portals4_frag_t*) ev.user_ptr;
-
-    /* NOTE-MT: A different thread may have created this frag, so we need a
-     * memory barrier here before accessing any of the SHMEM-related fields in
-     * the frag.  Right now that comes from the mutex. */
-    SHMEM_MUTEX_LOCK(shmem_internal_mutex_ptl4_frag);
-    if (SHMEM_TRANSPORT_PORTALS4_TYPE_BOUNCE == frag->type) {
-         /* it's a short send completing */
-         SHMEM_MUTEX_UNLOCK(shmem_internal_mutex_ptl4_frag);
-         shmem_free_list_free(shmem_transport_portals4_bounce_buffers,
-                              frag);
-    } else {
-         /* it's one of the long messages we're waiting for */
-         shmem_transport_portals4_long_frag_t *long_frag = 
-              (shmem_transport_portals4_long_frag_t*) frag;
-
-         (*(long_frag->completion))--;
-         if (0 >= --long_frag->reference) {
-              long_frag->reference = 0;
-              SHMEM_MUTEX_UNLOCK(shmem_internal_mutex_ptl4_frag);
-              shmem_free_list_free(shmem_transport_portals4_long_frags,
-                                   frag);
-         } else {
-              SHMEM_MUTEX_UNLOCK(shmem_internal_mutex_ptl4_frag);
-         }
-    }
 }
 
 
@@ -535,16 +557,6 @@ shmem_transport_put_ct_nb(shmem_transport_ct_t *ct, void *target, const void *so
 
 static inline
 void
-shmem_transport_put_wait(long *completion)
-{
-    while (*completion > 0) {
-        shmem_transport_portals4_drain_eq();
-    }
-}
-
-
-static inline
-void
 shmem_transport_portals4_get_internal(void *target, const void *source, size_t len, int pe,
                              ptl_pt_index_t data_pt, ptl_pt_index_t heap_pt)
 {
@@ -597,21 +609,6 @@ void shmem_transport_get_ct(shmem_transport_ct_t *ct, void *target,
     shmem_transport_portals4_get_internal(target, source, len, pe,
                                           ct->data_pt, ct->heap_pt);
 #endif
-}
-
-
-static inline
-void
-shmem_transport_get_wait(void)
-{
-    int ret;
-    ptl_ct_event_t ct;
-
-    ret = PtlCTWait(shmem_transport_portals4_get_ct_h, 
-                    shmem_transport_portals4_pending_get_counter,
-                    &ct);
-    if (PTL_OK != ret) { RAISE_ERROR(ret); }
-    if (ct.failure != 0) { RAISE_ERROR(ct.failure); }
 }
 
 
