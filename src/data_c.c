@@ -603,7 +603,7 @@ shmem_put8(void *dest, const void *source, size_t nelems, int pe)
 
   SHMEM_ERR_CHECK_INITIALIZED();
 
-  shmem_internal_put_nb(dest, source, 8*nelems, pe, &completion);
+  shmem_internal_put_nb(dest, source, nelems, pe, &completion);
   shmem_internal_put_wait(&completion);
 }
 
@@ -615,7 +615,7 @@ shmem_put16(void *dest, const void *source, size_t nelems, int pe)
 
   SHMEM_ERR_CHECK_INITIALIZED();
 
-  shmem_internal_put_nb(dest, source, 16*nelems, pe, &completion);
+  shmem_internal_put_nb(dest, source, 2 * nelems, pe, &completion);
   shmem_internal_put_wait(&completion);
 }
 
@@ -774,7 +774,7 @@ shmem_put8_nbi(void *dest, const void *source, size_t nelems, int pe)
 
   SHMEM_ERR_CHECK_INITIALIZED();
 
-  shmem_internal_put_nb(dest, source, 8*nelems, pe, &completion);
+  shmem_internal_put_nb(dest, source, nelems, pe, &completion);
 }
 
 
@@ -785,7 +785,7 @@ shmem_put16_nbi(void *dest, const void *source, size_t nelems, int pe)
 
   SHMEM_ERR_CHECK_INITIALIZED();
 
-  shmem_internal_put_nb(dest, source, 16*nelems, pe, &completion);
+  shmem_internal_put_nb(dest, source, 2 * nelems, pe, &completion);
 }
 
 
@@ -889,6 +889,26 @@ shmem_longlong_get(long long *target, const long long *source, size_t len, int p
 
     shmem_internal_get(target, source, sizeof(long long) * len, pe);
     shmem_internal_get_wait();
+}
+
+
+void
+shmem_get8(void *dest, const void *source, size_t nelems, int pe)
+{
+  SHMEM_ERR_CHECK_INITIALIZED();
+
+  shmem_internal_get(dest, source, nelems, pe);
+  shmem_internal_get_wait();
+}
+
+
+void
+shmem_get16(void *dest, const void *source, size_t nelems, int pe)
+{
+  SHMEM_ERR_CHECK_INITIALIZED();
+
+  shmem_internal_get(dest, source, 2 * nelems, pe);
+  shmem_internal_get_wait();
 }
 
 
@@ -1018,7 +1038,7 @@ shmem_get8_nbi(void *dest, const void *source, size_t nelems, int pe)
 {
   SHMEM_ERR_CHECK_INITIALIZED();
 
-  shmem_internal_get(dest, source, 8*nelems, pe);
+  shmem_internal_get(dest, source, nelems, pe);
 }
 
 
@@ -1027,7 +1047,7 @@ shmem_get16_nbi(void *dest, const void *source, size_t nelems, int pe)
 {
   SHMEM_ERR_CHECK_INITIALIZED();
 
-  shmem_internal_get(dest, source, 16*nelems, pe);
+  shmem_internal_get(dest, source, 2 * nelems, pe);
 }
 
 
