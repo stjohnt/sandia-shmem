@@ -61,19 +61,19 @@ main(int argc, char* argv[])
         /* put 10 elements into target on remote PEs */
         for(i = 0; i < num_pes; i++) {
             shmem_long_put_nbi(target, source, 10, i);
-	    shmem_fence();
-	    shmem_int_inc(&flag[0], i);
-	}
+            shmem_fence();
+            shmem_int_inc(&flag[0], i);
+        }
     }
 
     shmem_int_wait_until(&flag[0], SHMEM_CMP_EQ, 1);
 
     if (0 != memcmp(source, target, sizeof(long) * 10)) {
         fprintf(stderr,"[%d] Src & Target mismatch?\n",shmem_my_pe());
-	for (i = 0 ; i < 10 ; ++i) {
-	    printf("%d:%ld,%ld \n", shmem_my_pe(), source[i], target[i]);
-	}
-	shmem_global_exit(1);
+        for (i = 0 ; i < 10 ; ++i) {
+            printf("%d:%ld,%ld \n", shmem_my_pe(), source[i], target[i]);
+        }
+        shmem_global_exit(1);
     }
 
     shmem_free(target);
