@@ -28,6 +28,9 @@
 /* Non-Blocking Get Test
  * Tom St. John <tom.st.john@intel.com>
  * January, 2016
+ *
+ * PE 0 uses a non-blocking get to copy an array from
+ * every remote PE.
  */
 
 #include <shmem.h>
@@ -41,28 +44,28 @@ static long target[10];
 int
 main(int argc, char* argv[])
 {
-  int i, j, num_pes;;
+    int i, j, num_pes;;
 
-  shmem_init();
+    shmem_init();
 
     if (shmem_my_pe() == 0) {
-      num_pes=shmem_n_pes();
+        num_pes=shmem_n_pes();
 
-      for(j = 0;j < num_pes; j++) {
-        memset(target, 0, sizeof(target));
-        /* get 10 elements from source on remote PEs */
-        shmem_long_get_nbi(target, source, 10, j);
-	shmem_quiet();
+	for(j = 0;j < num_pes; j++) {
+            memset(target, 0, sizeof(target));
+	    /* get 10 elements from source on remote PEs */
+	    shmem_long_get_nbi(target, source, 10, j);
+	    shmem_quiet();
 	
-        if (0 != memcmp(source, target, sizeof(long) * 10)) {
-            fprintf(stderr,"[%d] Src & Target mismatch?\n",shmem_my_pe());
-            for (i = 0 ; i < 10 ; ++i) {
-                printf("%ld,%ld ", source[i], target[i]);
-            }
-            printf("\n");
-            shmem_global_exit(1);
-        }
-      }
+	    if (0 != memcmp(source, target, sizeof(long) * 10)) {
+                fprintf(stderr,"[%d] Src & Target mismatch?\n",shmem_my_pe());
+		for (i = 0 ; i < 10 ; ++i) {
+		  printf("%ld,%ld ", source[i], target[i]);
+		}
+		printf("\n");
+		shmem_global_exit(1);
+	    }
+	}
     }
 
     shmem_finalize();
